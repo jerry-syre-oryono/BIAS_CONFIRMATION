@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Trading Strategy Checklist — 1H + 5M Hybrid</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <div class="max-w-6xl mx-auto p-6">
+    <header class="mb-6">
+      <h1 class="text-2xl font-semibold">Trading Strategy Checklist — GBP/USD (London & New York)</h1>
+      <p class="text-sm text-gray-600 mt-1">Use the tables below to manually confirm conditions. When the 1H bias and a 5m slot are satisfied, the indicator will light up. You can use up to 3 active 5m trade slots.</p>
+    </header>
+
+    <section id="controls" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="col-span-1 md:col-span-2 p-4 bg-white rounded shadow">
+        <h2 class="font-medium">1H Bias</h2>
+        <div class="mt-3 flex items-center gap-4">
+          <label class="inline-flex items-center">
+            <input id="biasNone" type="radio" name="bias" value="none" checked class="bias-radio">
+            <span class="ml-2 text-sm">No bias</span>
+          </label>
+          <label class="inline-flex items-center">
+            <input id="biasBuy" type="radio" name="bias" value="buy" class="bias-radio">
+            <span class="ml-2 text-sm text-green-600">Buy</span>
+          </label>
+          <label class="inline-flex items-center">
+            <input id="biasSell" type="radio" name="bias" value="sell" class="bias-radio">
+            <span class="ml-2 text-sm text-red-600">Sell</span>
+          </label>
+        </div>
+
+        <div class="mt-4">
+          <table class="w-full text-sm table-auto">
+            <thead>
+              <tr class="text-left text-xs text-gray-500 border-b">
+                <th class="py-2">Condition</th>
+                <th class="py-2">Met?</th>
+              </tr>
+            </thead>
+            <tbody id="oneh-table" class="text-gray-700">
+              <tr class="border-b">
+                <td class="py-2">Price relative to 200MA (above for Buy / below for Sell)</td>
+                <td class="py-2 text-right"><input type="checkbox" class="oneh-cb" data-key="ma" /></td>
+              </tr>
+              <tr class="border-b">
+                <td class="py-2">CHOCH → BOS printed in 1H (trend established)</td>
+                <td class="py-2 text-right"><input type="checkbox" class="oneh-cb" data-key="structure" /></td>
+              </tr>
+              <tr class="border-b">
+                <td class="py-2">Simplified order block present for the bias</td>
+                <td class="py-2 text-right"><input type="checkbox" class="oneh-cb" data-key="ob" /></td>
+              </tr>
+              <tr class="border-b">
+                <td class="py-2">1H Williams %R(14) neutral (between −80 and −20) / preparing</td>
+                <td class="py-2 text-right"><input type="checkbox" class="oneh-cb" data-key="wr" /></td>
+              </tr>
+              <tr>
+                <td class="py-2">Session: London or New York</td>
+                <td class="py-2 text-right"><input type="checkbox" class="oneh-cb" data-key="session" /></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="p-4 bg-white rounded shadow">
+        <h2 class="font-medium">Quick Stats</h2>
+        <div class="mt-3 space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="text-sm text-gray-600">1H Completion</div>
+            <div id="oneh-percent" class="text-sm font-medium">0%</div>
+          </div>
+          <div class="w-full bg-gray-200 rounded h-2 overflow-hidden">
+            <div id="oneh-bar" class="h-2 bg-green-500 w-0"></div>
+          </div>
+
+          <div class="flex items-center justify-between mt-2">
+            <div class="text-sm text-gray-600">Best 5M Slot</div>
+            <div id="best5-percent" class="text-sm font-medium">0%</div>
+          </div>
+          <div class="w-full bg-gray-200 rounded h-2 overflow-hidden">
+            <div id="best5-bar" class="h-2 bg-blue-500 w-0"></div>
+          </div>
+
+          <div class="pt-3">
+            <div class="text-sm text-gray-600">Overall Success</div>
+            <div class="mt-2 text-lg font-semibold" id="overall-percent">0%</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <main class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+      <section class="lg:col-span-2 bg-white p-4 rounded shadow">
+        <h2 class="font-medium mb-3">5m Trade Slots (max 3)</h2>
+
+        <div id="slots" class="space-y-4">
+          <!-- slot template inserted by JS -->
+        </div>
+
+        <div class="mt-4 flex items-center gap-3">
+          <button id="add-slot" class="px-3 py-2 bg-indigo-600 text-white rounded disabled:opacity-50">Add Slot</button>
+          <button id="reset" class="px-3 py-2 border rounded">Reset All</button>
+          <div class="ml-auto text-sm text-gray-500">Active slots: <span id="active-count">0</span>/3</div>
+        </div>
+      </section>
+
+      <aside class="bg-white p-4 rounded shadow">
+        <h2 class="font-medium">Trade Indicator</h2>
+        <div class="mt-4">
+          <div id="tradeIndicator" class="h-28 rounded flex items-center justify-center text-white text-2xl font-bold bg-gray-300">No Bias</div>
+          <div id="secondTradeIndicator" class="mt-4 p-3 rounded-lg opacity-50 bg-gray-500 text-white text-center">Second Trade — WAIT</div>
+          <div id="thirdTradeIndicator" class="mt-2 p-3 rounded-lg opacity-50 bg-gray-500 text-white text-center">Third Trade — WAIT</div>
+          <div class="mt-4 text-sm text-gray-600">Indicator lights green for BUY, red for SELL when conditions are met.</div>
+        </div>
+
+        <div class="mt-4">
+          <h3 class="font-medium">Active Slot</h3>
+          <div id="active-slot-info" class="mt-2 text-sm text-gray-700">—</div>
+        </div>
+
+      </aside>
+    </main>
+
+    <footer class="mt-6 text-xs text-gray-500">Tip: check the 1H bias first. 5m slots inherit the 1H bias side and will be locked to that side to avoid contradictory trades.</footer>
+  </div>
+
+<script>
+// Data model
+const MAX_SLOTS = 3;
+let slots = [];
+const onehKeys = ['ma','structure','ob','wr','session'];
+
+// Helpers
+function createSlot(id){
+  return {
+    id,
+    active: true,
+    checks: {
+      sideMatch: true, // enforced by 1H
+      ma: false,
+      microStructure: false,
+      retrace: false,
+      wr: false,
+      engulf: false
+    }
+  }
+}
+
+// DOM utilities
+const slotsContainer = document.getElementById('slots');
+const addBtn = document.getElementById('add-slot');
+const resetBtn = document.getElementById('reset');
+const activeCountSpan = document.getElementById('active-count');
+const activeSlotInfo = document.getElementById('active-slot-info');
+
+function renderOneH(){
+  const checks = document.querySelectorAll('.oneh-cb');
+  let done = 0;
+  checks.forEach(c=>{ if(c.checked) done++; });
+  const pct = Math.round((done / onehKeys.length) * 100);
+  document.getElementById('oneh-percent').innerText = pct + '%';
+  document.getElementById('oneh-bar').style.width = pct + '%';
+}
+
+function renderSlots(){
+  slotsContainer.innerHTML = '';
+  slots.forEach((s, idx) => {
+    const slotEl = document.createElement('div');
+    slotEl.className = 'p-3 border rounded bg-gray-50';
+    slotEl.innerHTML = `
+      <div class="flex items-start justify-between">
+        <div>
+          <div class="text-sm font-medium">5m Slot ${idx+1} <span class="text-xs text-gray-500">(active)</span></div>
+          <div class="text-xs text-gray-500">Side: <span class="slot-side" data-id="${s.id}"></span></div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="deactivate-btn px-2 py-1 text-xs border rounded" data-id="${s.id}">Deactivate</button>
+          <button class="remove-btn px-2 py-1 text-xs text-red-600">Remove</button>
+        </div>
+      </div>
+
+      <table class="w-full mt-3 text-sm table-auto">
+        <tbody>
+          <tr class="border-b"><td class="py-2">Price relative to 200MA (same side as 1H)</td><td class="py-2 text-right"><input type="checkbox" class="slot-cb" data-id="${s.id}" data-key="ma"></td></tr>
+          <tr class="border-b"><td class="py-2">Micro CHOCH → BOS on 5m (trend continuation)</td><td class="py-2 text-right"><input type="checkbox" class="slot-cb" data-id="${s.id}" data-key="microStructure"></td></tr>
+          <tr class="border-b"><td class="py-2">Retracement to 200MA or simplified OB</td><td class="py-2 text-right"><input type="checkbox" class="slot-cb" data-id="${s.id}" data-key="retrace"></td></tr>
+          <tr class="border-b"><td class="py-2">Williams %R(14) on 5m extreme + turn</td><td class="py-2 text-right"><input type="checkbox" class="slot-cb" data-id="${s.id}" data-key="wr"></td></tr>
+          <tr><td class="py-2">Strong Engulfing (close beyond previous wick)</td><td class="py-2 text-right"><input type="checkbox" class="slot-cb" data-id="${s.id}" data-key="engulf"></td></tr>
+        </tbody>
+      </table>
+    `;
+
+    slotsContainer.appendChild(slotEl);
+    // restore checkbox states inside this slot
+    slotEl.querySelectorAll('.slot-cb').forEach(cb=>{
+      const key = cb.dataset.key;
+      cb.checked = !!s.checks[key];
+    });
+  });
+
+  // attach removal/deactivate handlers AFTER rendering
+  document.querySelectorAll('.remove-btn').forEach((btn, i)=>{
+    btn.addEventListener('click', ()=>{
+      slots.splice(i,1);
+      updateActiveCount();
+      renderSlots();
+      attachSlotListeners();
+      computeAll();
+    })
+  });
+
+  document.querySelectorAll('.deactivate-btn').forEach((btn, i)=>{
+    btn.addEventListener('click', (e)=>{
+      const id = e.target.dataset.id;
+      const sIndex = slots.findIndex(x=>x.id==id);
+      if(sIndex>-1){
+        slots[sIndex].active = !slots[sIndex].active;
+        renderSlots();
+        attachSlotListeners();
+        computeAll();
+      }
+    })
+  });
+
+  attachSlotListeners();
+}
+
+function attachSlotListeners(){
+  document.querySelectorAll('.slot-cb').forEach(cb=>{
+    cb.removeEventListener('change', slotCbHandler);
+    cb.addEventListener('change', slotCbHandler);
+  });
+}
+
+function slotCbHandler(e){
+  const id = e.target.dataset.id;
+  const key = e.target.dataset.key;
+  const s = slots.find(x=>x.id==id);
+  if(!s) return;
+  s.checks[key] = e.target.checked;
+  computeAll();
+}
+
+// Add slot
+addBtn.addEventListener('click', ()=>{
+  if(slots.length>=MAX_SLOTS) return;
+  const id = Date.now().toString(36);
+  slots.push(createSlot(id));
+  renderSlots();
+  updateActiveCount();
+  attachSlotListeners();
+  computeAll();
+});
+
+resetBtn.addEventListener('click', ()=>{
+  document.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.checked=false);
+  document.querySelectorAll('input[name=bias]').forEach(r=>{ if(r.value==='none') r.checked = true; });
+  slots = [];
+  renderSlots();
+  updateActiveCount();
+  computeAll();
+});
+
+// oneH listeners
+document.querySelectorAll('.oneh-cb').forEach(cb=>cb.addEventListener('change', ()=>{ renderOneH(); computeAll(); }));
+document.querySelectorAll('.bias-radio').forEach(r=>r.addEventListener('change', ()=>{ onBiasChange(); }));
+
+function onBiasChange(){
+  // enforce side on all slots and update UI text
+  const bias = document.querySelector('input[name=bias]:checked').value;
+  document.querySelectorAll('.slot-side').forEach(el=> el.innerText = bias.toUpperCase());
+  // If bias is none, color indicator gray
+  computeAll();
+}
+
+function updateActiveCount(){
+  activeCountSpan.innerText = slots.filter(s=>s.active).length;
+}
+
+function computeSlotCompletion(s){
+  const keys = Object.keys(s.checks).filter(k=>k!=='sideMatch');
+  const done = keys.reduce((acc,k)=> acc + (s.checks[k]?1:0), 0);
+  const pct = Math.round((done / keys.length) * 100);
+  return pct;
+}
+
+function applyVisualFeedback(successPercentage){
+  const indicator=document.getElementById('tradeIndicator');
+  if(!indicator) return;
+  const bias = document.querySelector('input[name=bias]:checked')?.value || 'none';
+  const isBuy = bias === 'buy';
+  const isSell = bias === 'sell';
+
+  if(successPercentage >= 75){
+    indicator.classList.add('pulse-success');
+    indicator.classList.remove('opacity-50');
+
+    if(isBuy){
+      indicator.classList.remove('bg-red-600');
+      indicator.classList.add('bg-green-600');
+      indicator.innerText = 'BUY';
+    } else if(isSell){
+      indicator.classList.remove('bg-green-600');
+      indicator.classList.add('bg-red-600');
+      indicator.innerText = 'SELL';
+    } else {
+      indicator.classList.remove('bg-green-600','bg-red-600');
+      indicator.innerText = 'WAIT';
+    }
+  } else {
+    indicator.classList.remove('pulse-success');
+    indicator.classList.add('opacity-50');
+    indicator.classList.remove('bg-green-600','bg-red-600');
+    // show waiting text with bias if present
+    if(isBuy) indicator.innerText = 'BUY — Waiting';
+    else if(isSell) indicator.innerText = 'SELL — Waiting';
+    else indicator.innerText = 'No Bias';
+  }
+}
+
+// --- Second trade calculation and indicator logic ---
+function computeSecondTradePct(secondSlot){
+  if(!secondSlot) return 0;
+  const onehDone = document.querySelectorAll('.oneh-cb:checked').length;
+  const onehPct = (onehDone/onehKeys.length)*100;
+  const keys = Object.keys(secondSlot.checks).filter(k=>k!=='sideMatch');
+  const done = keys.reduce((acc,k)=> acc + (secondSlot.checks[k]?1:0),0);
+  const slotPct = (done/keys.length)*100;
+  return Math.round((onehPct + slotPct)/2);
+}
+
+function applySecondTradeFeedback(pct){
+  const el = document.getElementById('secondTradeIndicator');
+  if(!el) return;
+  const bias = document.querySelector('input[name=bias]:checked')?.value;
+  if(pct>=75){
+    el.classList.add('pulse-success');
+    el.classList.remove('opacity-50');
+    if(bias==='buy'){ el.classList.remove('bg-red-600'); el.classList.add('bg-green-600'); el.innerText='Second Trade — BUY'; }
+    else if(bias==='sell'){ el.classList.remove('bg-green-600'); el.classList.add('bg-red-600'); el.innerText='Second Trade — SELL'; }
+  } else {
+    el.classList.remove('pulse-success');
+    el.classList.add('opacity-50');
+    el.classList.remove('bg-green-600','bg-red-600');
+    el.innerText='Second Trade — WAIT';
+  }
+}
+
+function updateSecondTradeIndicator(){
+  if(slots.length>=2){
+    const secondSlot = slots[1];
+    const pct = computeSecondTradePct(secondSlot);
+    applySecondTradeFeedback(pct);
+  } else {
+    applySecondTradeFeedback(0);
+  }
+}
+
+// --- Third trade calculation and indicator logic ---
+function computeThirdTradePct(thirdSlot){
+  if(!thirdSlot) return 0;
+  const onehDone = document.querySelectorAll('.oneh-cb:checked').length;
+  const onehPct = (onehDone/onehKeys.length)*100;
+  const keys = Object.keys(thirdSlot.checks).filter(k=>k!=='sideMatch');
+  const done = keys.reduce((acc,k)=> acc + (thirdSlot.checks[k]?1:0),0);
+  const slotPct = (done/keys.length)*100;
+  return Math.round((onehPct + slotPct)/2);
+}
+
+function applyThirdTradeFeedback(pct){
+  const el = document.getElementById('thirdTradeIndicator');
+  if(!el) return;
+  const bias = document.querySelector('input[name=bias]:checked')?.value;
+  if(pct>=75){
+    el.classList.add('pulse-success');
+    el.classList.remove('opacity-50');
+    if(bias==='buy'){ el.classList.remove('bg-red-600'); el.classList.add('bg-green-600'); el.innerText='Third Trade — BUY'; }
+    else if(bias==='sell'){ el.classList.remove('bg-green-600'); el.classList.add('bg-red-600'); el.innerText='Third Trade — SELL'; }
+  } else {
+    el.classList.remove('pulse-success');
+    el.classList.add('opacity-50');
+    el.classList.remove('bg-green-600','bg-red-600');
+    el.innerText='Third Trade — WAIT';
+  }
+}
+
+function updateThirdTradeIndicator(){
+  if(slots.length>=3){
+    const thirdSlot = slots[2];
+    const pct = computeThirdTradePct(thirdSlot);
+    applyThirdTradeFeedback(pct);
+  } else {
+    applyThirdTradeFeedback(0);
+  }
+}
+
+function computeAll(){
+  renderOneH();
+  // compute best 5m completion among active slots
+  let bestPct = 0; let bestSlot = null;
+  slots.forEach(s=>{
+    if(!s.active) return;
+    const pct = computeSlotCompletion(s);
+    if(pct>bestPct){ bestPct = pct; bestSlot = s; }
+  });
+  document.getElementById('best5-percent').innerText = bestPct + '%';
+  document.getElementById('best5-bar').style.width = bestPct + '%';
+
+  // overall percent = 50% * 1H + 50% * best5
+  const onehDone = document.querySelectorAll('.oneh-cb:checked').length;
+  const onehPct = (onehDone / onehKeys.length) * 100;
+  const overall = Math.round(((onehPct * 0.5) + (bestPct * 0.5)) );
+  document.getElementById('overall-percent').innerText = overall + '%';
+
+  // indicator logic: compute readiness and call visual feedback
+  const bias = document.querySelector('input[name=bias]:checked').value;
+  const onehAll = onehDone === onehKeys.length;
+  let bestSlotPct = 0;
+  if(bestSlot) bestSlotPct = computeSlotCompletion(bestSlot);
+  const ready = (bias !== 'none' && onehAll && bestSlotPct === 100);
+
+  // Update active slot info
+  if(ready && bestSlot){
+    activeSlotInfo.innerHTML = `Slot ${slots.indexOf(bestSlot)+1} is fully confirmed.`;
+  } else {
+    activeSlotInfo.innerText = bestSlot ? `Best slot: ${slots.indexOf(bestSlot)+1} — ${bestSlotPct}% confirmed` : 'No active 5m slots';
+  }
+
+  // Visual feedback based on overall percent
+  applyVisualFeedback(overall);
+  // Update secondary trade indicator based on second slot
+  updateSecondTradeIndicator();
+  // Update third trade indicator based on third slot
+  updateThirdTradeIndicator();
+}
+
+// Initialize with one slot
+(function init(){
+  slots.push(createSlot(Date.now().toString(36)));
+  renderSlots();
+  updateActiveCount();
+  attachSlotListeners();
+  computeAll();
+  onBiasChange();
+})();
+
+</script>
+<script>
+// Override success logic with 75% threshold (utility)
+function checkTradeGo(successPercentage) { return successPercentage >= 75; }
+</script>
+<button id="darkModeToggle" class="fixed bottom-4 right-4 p-3 rounded-full bg-gray-700 text-white">🌓</button>
+<script>
+const toggle=document.getElementById('darkModeToggle');
+toggle.addEventListener('click',()=>{ document.documentElement.classList.toggle('dark'); });
+</script>
+<style>
+.pulse-success { animation: pulse 1.2s infinite; }
+@keyframes pulse { 0% { transform: scale(1); box-shadow: 0 0 0px rgba(0,255,0,0.6);} 50% { transform: scale(1.05); box-shadow: 0 0 15px rgba(0,255,0,0.9);} 100% { transform: scale(1); box-shadow: 0 0 0px rgba(0,255,0,0.6);} }
+
+/* dark mode tweaks */
+:root.dark { background-color: #0b1220; color: #e6eef8; }
+:root.dark .bg-white { background-color: #0f1724 !important; }
+:root.dark .bg-gray-300 { background-color: #111827 !important; }
+</style>
+</body>
+</html>
